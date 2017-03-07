@@ -1,0 +1,56 @@
+import urllib
+import json
+import time
+import random
+#import BeautifulSoup
+
+from pymongo import MongoClient
+
+mongo_uri_no_auth = 'mongodb://localhost:27017/' 
+database_name = 'hel' 
+table_name = 'hel'
+client = MongoClient(mongo_uri_no_auth)
+db = client[database_name]
+table = db[table_name]
+
+def loadDataSet(fileName):
+    dataList = []
+    fr = open(fileName)
+    for line in fr.readlines():
+        curLine = line.strip('\n').split('\n')
+        dataList.append(curLine)
+    return dataList
+
+def geturll(contextt,name):
+    starturl1 = str('http://sj.qq.com/myapp/app/comment.htm?apkName='+name+'&contextData='+contextt)
+#    print starturl1
+    html = urllib.urlopen(starturl1)
+    tests = str(html.read())
+    surr = json.loads(tests)
+    return surr
+
+def long_sleeptime():
+    x = random.choice([0.01,0.2,0.4,0.7,0.88,0.15,2.1,1.22,1.02,1.2,1.3])
+    return x
+
+urllist = loadDataSet('test.txt')
+for j in range(len(urllist)):
+    contextt = ''
+    time.sleep(long_sleeptime())
+    print 'the apkname = ', urllist[j][0]
+    for k in range(100):
+        print 'thepage=',k
+        time.sleep(long_sleeptime())
+        hell = geturll(contextt,urllist[j][0])
+        while hell['success'] == False:
+            time.sleep(long_sleeptime())
+            hell = geturll(contextt,urllist[j][0])
+        contextt = hell['obj']['contextData']
+        print contextt
+        commentlist = hell['obj']['commentDetails']
+        for i in range(len(hell['obj']['commentDetails'])):
+ #           print i+1,commentlist[i]['nickName'],commentlist[i]['score'],commentlist[i]['content'],commentlist[i]['versionCode'],commentlist[i]['createdTime']
+            time_local = time.localtime(commentlist[i]['createdTime'])
+            dt = time.strftime("%Y-%m-%d %H:%M:%S",time_local)
+            insert_data = {"apkname":urllist[j][0],"nickname":commentlist[i]['nickName'],"score":commentlist[i]['score'],"content":commentlist[i]['content'],"versionCode":commentlist[i]['versionCode'],"createdTime":dt}
+            table.insert_one(insert_data )
